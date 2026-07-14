@@ -1,10 +1,27 @@
 # Rosetta
 
-A CLI tool for decompiling IL2CPP Unity game builds (APK/XAPK) back into approximate C# source.
+A CLI tool for decompiling IL2CPP Unity game builds (APK/XAPK) back into readable, approximate C# source.
+
+Unlike simple metadata dumpers, Rosetta implements a full decompilation pipeline — from raw machine code up to structured, near-source-level output.
+
+## Pipeline
+
+Rosetta reconstructs C# through five stages:
+
+1. **Custom Decoder** — disassembles native ARM/x86 instructions directly from the IL2CPP binary, independent of external disassembler dependencies.
+2. **IR Lifter** — translates decoded instructions into an architecture-agnostic intermediate representation, normalizing register and memory operations for analysis.
+3. **CFG Construction** — builds a control flow graph per method, resolving branches, loops, and jump tables into structured basic blocks.
+4. **SSA Form** — converts the CFG into Static Single Assignment form, enabling accurate variable tracking and simplifying downstream expression reconstruction.
+5. **AST Generation** — rebuilds a high-level abstract syntax tree from SSA form, emitted as approximate, readable C#.
+
+This staged architecture is what separates Rosetta from simpler IL2CPP tools that only recover method signatures or shallow bytecode — it aims to recover actual method logic.
 
 ## Features
 
-- **Script decompilation** — recovers approximate C# source from `Assembly-CSharp` inside an IL2CPP build, with optional IL/IR dumping and 32-bit architecture targeting.
+- **Full-logic script decompilation** — recovers approximate C# source (not just stubs/signatures) from `Assembly-CSharp` inside an IL2CPP build.
+- **IL/IR dumping** — inspect intermediate representation output for debugging or research.
+- **32-bit and 64-bit architecture targeting.**
+- **Per-method verbose tracing** for debugging specific decompilation targets.
 
 ## Requirements
 
@@ -14,17 +31,20 @@ A CLI tool for decompiling IL2CPP Unity game builds (APK/XAPK) back into approxi
 ## Usage
 
 Decompile scripts from a given assembly:
+
 ```bash
 dotnet run -c Release -- scripts "/path/to/Game.apk" --select Assembly-CSharp
 ```
 
 Target a 32-bit build, or dump the intermediate representation:
+
 ```bash
 dotnet run -c Release -- scripts "/path/to/Game.apk" --select Assembly-CSharp --arch-32
 dotnet run -c Release -- scripts "/path/to/Game.apk" --select Assembly-CSharp --dump-ir
 ```
 
 Verbose output for a specific method:
+
 ```bash
 dotnet run -c Release -- scripts "/path/to/Game.apk" --select Assembly-CSharp --verbose "gen:Namespace##MethodName"
 ```
@@ -52,6 +72,7 @@ dotnet publish -c Release -r <RID> \
   -p:IncludeNativeLibrariesForSelfExtract=true \
   --self-contained
 ```
+
 Replace `<RID>` with any of the runtime identifiers listed above.
 
 ## Intended use
